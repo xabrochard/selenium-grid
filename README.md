@@ -18,7 +18,7 @@ An OpenShift/Kubernetes template to deploy Selenium Grid Server on OpenShift. It
 # How to use?
 
 ## Build the images
-Form your OpenShift console, import [`./openshift/build-images.yaml`](./openshift/build-images.yaml), and build the different images.
+Form your OpenShift console, import [`./openshift/templates/build-images.yaml`](./openshift/templates/build-images.yaml), and build the different images.
 
 lternatively, you can login to OpenShift via the `oc` command line:
 ```bash
@@ -30,7 +30,7 @@ $ oc create -f openshift/build-images.yaml
 ```
 
 ## Import the template
-Import the template [`./openshift/selenium-grid.yaml`](./openshift/selenium-grid.yaml) in OpenShift. 
+Import the template [`./openshift/templates/selenium-grid.yaml`](./openshift/templates/selenium-grid.yaml) in OpenShift. 
 
 Or with the command line:
 ```bash
