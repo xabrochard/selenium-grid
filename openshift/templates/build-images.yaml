@@ -21,7 +21,7 @@ objects:
       contextDir: /docker-images/base
       type: Git
       git:
-        uri: REPLACEME
+        uri: git@github.com:xabrochard/selenium-grid.git
         ref: master
       sourceSecret:
         name: sshsecret
@@ -64,7 +64,7 @@ objects:
       contextDir: /docker-images/node-base
       type: Git
       git:
-        uri: REPLACEME
+        uri: git@github.com:xabrochard/selenium-grid.git
         ref: master
       sourceSecret:
         name: sshsecret
@@ -98,7 +98,7 @@ objects:
       contextDir: /docker-images/hub
       type: Git
       git:
-        uri: REPLACEME
+        uri: git@github.com:xabrochard/selenium-grid.git
         ref: master
       sourceSecret:
         name: sshsecret
@@ -132,7 +132,7 @@ objects:
       contextDir: /docker-images/node-firefox
       type: Git
       git:
-        uri: REPLACEME
+        uri: git@github.com:xabrochard/selenium-grid.git
         ref: master
       sourceSecret:
         name: sshsecret
@@ -168,7 +168,7 @@ objects:
       contextDir: /docker-images/node-chrome
       type: Git
       git:
-        uri: REPLACEME
+        uri: git@github.com:xabrochard/selenium-grid.git
         ref: master
       sourceSecret:
         name: sshsecret

@@ -1,3 +1,5 @@
+![Selenium illustration](public/images/hero.svg)
+
 An OpenShift/Kubernetes template to deploy Selenium Grid Server on OpenShift. It will start a Hub, a Chrome and a Firefox nodes and connect them to the Hub.
 
 # Table of Contents
