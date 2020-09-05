@@ -1,0 +1,199 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: build-images
+  annotations:
+    openshift.io/display-name: "Build the Selenium images."
+    description: "Warning: this is an admin task!\n Initiate once the BuildConfigs and ImageStreams necessary when users want to use the Selenium Grid template."
+    iconClass: "icon-stackoverflow"
+    tags: "selenium"
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: selenium-base
+    labels:
+      build: selenium-base
+  spec:
+    triggers:
+    - type: ConfigChange
+    source:
+      contextDir: /docker-images/base
+      type: Git
+      git:
+        uri: REPLACEME
+        ref: master
+      sourceSecret:
+        name: sshsecret
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+        - name: SELENIUM_MAJOR
+          value: '3'
+        - name: SELENIUM_MINOR
+          value: '141'
+        - name: SELENIUM_REVISION
+          value: '59'
+        from:
+          kind: DockerImage
+          name: registry.access.redhat.com/ubi8/ubi
+    output:
+      to:
+        kind: ImageStreamTag
+        name: selenium-base:latest
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: selenium-base
+  spec:
+    dockerImageRepository: ''
+    tags:
+    - name: latest
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: selenium-node-base
+    labels:
+      build: selenium-node-base
+  spec:
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    source:
+      contextDir: /docker-images/node-base
+      type: Git
+      git:
+        uri: REPLACEME
+        ref: master
+      sourceSecret:
+        name: sshsecret
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: 'selenium-base:latest'
+    output:
+      to:
+        kind: ImageStreamTag
+        name: selenium-node-base:latest
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: selenium-node-base
+  spec:
+    dockerImageRepository: ''
+    tags:
+    - name: latest
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: selenium-hub
+  spec:
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    source:
+      contextDir: /docker-images/hub
+      type: Git
+      git:
+        uri: REPLACEME
+        ref: master
+      sourceSecret:
+        name: sshsecret
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: 'selenium-base:latest'
+    output:
+      to:
+        kind: ImageStreamTag
+        name: selenium-hub:latest
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      build: selenium-hub
+    name: selenium-hub
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: selenium-node-firefox
+    labels:
+      build: selenium-node-firefox
+  spec:
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    source:
+      contextDir: /docker-images/node-firefox
+      type: Git
+      git:
+        uri: REPLACEME
+        ref: master
+      sourceSecret:
+        name: sshsecret
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: 'selenium-node-base:latest'
+    output:
+      to:
+        kind: ImageStreamTag
+        name: selenium-node-firefox:latest
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: selenium-node-firefox
+  spec:
+    dockerImageRepository: ''
+    tags:
+    - name: latest
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: selenium-node-chrome
+    labels:
+      build: selenium-node-chrome
+  spec:
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    source:
+      contextDir: /docker-images/node-chrome
+      type: Git
+      git:
+        uri: REPLACEME
+        ref: master
+      sourceSecret:
+        name: sshsecret
+    strategy:
+      type: Docker
+      dockerStrategy:
+        env:
+          - name: CHROME_VERSION
+            value: '85.0.4183.83'
+          - name: CHROMEDRIVER_VERSION
+            value: '85.0.4183.87'
+        from:
+          kind: ImageStreamTag
+          name: 'selenium-node-base:latest'
+    output:
+      to:
+        kind: ImageStreamTag
+        name: selenium-node-chrome:latest
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: selenium-node-chrome
+  spec:
+    dockerImageRepository: ''
+    tags:
+    - name: latest
+labels:
+  app: Selenium

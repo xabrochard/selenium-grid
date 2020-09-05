@@ -1,0 +1,283 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: selenium-grid
+  annotations:
+    openshift.io/display-name: "Selenium Grid"
+    description: "A Selenium Grid to run automated browser tests against Firefox and Chrome.\n\nSelenium Grid version 3.141.59\nChrome version 70.0.3538.110\nFirefox version 58.0"
+    iconClass: "icon-stackoverflow"
+    tags: "selenium,grid"
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.openshift.io/dependencies: '[{"name": "${SELENIUM_NODE_FIREFOX_NAME}", "namespace": "", "kind": "Service"},{"name": "${SELENIUM_NODE_CHROME_NAME}", "namespace": "", "kind": "Service"} ]'
+    name: ${SELENIUM_HUB_NAME}
+  spec:
+    selector:
+      type: ${SELENIUM_HUB_NAME}
+    type: ClusterIP
+    ports:
+    - name: web
+      port: 4444
+      targetPort: 4444
+      protocol: TCP
+    - name: node
+      port: 5555
+      targetPort: 5555
+      protocol: TCP
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: ${SELENIUM_HUB_NAME}
+  spec:
+    strategy:
+      type: Recreate
+    replicas: 1
+    selector:
+      type: ${SELENIUM_HUB_NAME}
+    template:
+      metadata:
+        labels:
+          type: ${SELENIUM_HUB_NAME}
+        name: ${SELENIUM_HUB_NAME}
+      spec:
+        containers:
+        - env:
+          - name: JAVA_OPTS
+            value: ${JAVA_OPTS}
+          - name: POOL_MAX
+            value: ${POOL_MAX}
+          - name: GRID_NEW_SESSION_WAIT_TIMEOUT
+            value: ${GRID_NEW_SESSION_WAIT_TIMEOUT}
+          - name: GRID_JETTY_MAX_THREADS
+            value: ${GRID_JETTY_MAX_THREADS}
+          - name: GRID_NODE_POLLING
+            value: ${GRID_NODE_POLLING}
+          - name: GRID_CLEAN_UP_CYCLE
+            value: ${GRID_CLEAN_UP_CYCLE}
+          - name: GRID_TIMEOUT
+            value: ${GRID_TIMEOUT}
+          - name: GRID_BROWSER_TIMEOUT
+            value: ${GRID_BROWSER_TIMEOUT}
+          - name: GRID_MAX_SESSION
+            value: ${GRID_MAX_SESSION}
+          - name: GRID_UNREGISTER_IF_STILL_DOWN_AFTER
+            value: ${GRID_UNREGISTER_IF_STILL_DOWN_AFTER}
+          image: selenium-hub
+          name: master
+          ports:
+          - containerPort: 4444
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: wd/hub/status
+              port: 4444
+              scheme: HTTP
+          livenessProbe:
+            httpGet:
+              path: wd/hub/status
+              port: 4444
+              scheme: HTTP
+    triggers:
+      - type: ConfigChange
+      - type: ImageChange
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - "master"
+          from:
+            kind: ImageStreamTag
+            name: selenium-hub:prod
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: ${SELENIUM_HUB_NAME}
+  spec:
+    port:
+      targetPort: 4444
+    to:
+      kind: Service
+      name: ${SELENIUM_HUB_NAME}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: ${SELENIUM_NODE_FIREFOX_NAME}
+    labels:
+      deploymentConfig: ${SELENIUM_NODE_FIREFOX_NAME}
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${SELENIUM_NODE_FIREFOX_NAME}
+        from:
+          kind: ImageStreamTag
+          name: selenium-node-firefox:prod
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      browser: ${SELENIUM_NODE_FIREFOX_NAME}
+    template:
+      metadata:
+        labels:
+          browser: ${SELENIUM_NODE_FIREFOX_NAME}
+      spec:
+        volumes:                          
+          - name: dshm
+            emptyDir:
+              medium: Memory
+        containers:
+        - name: ${SELENIUM_NODE_FIREFOX_NAME}
+          image: selenium-node-firefox
+          ports:
+          - name: hub
+            containerPort: 4444
+            protocol: TCP
+          - name: node
+            containerPort: 5555
+            protocol: TCP
+          env:
+          - name: JAVA_OPTS
+            value: ${JAVA_OPTS}
+          - name: SE_OPTS
+            value: ''
+          - name: HUB_PORT_4444_TCP_ADDR
+            value: ${SELENIUM_HUB_NAME}
+          - name: HUB_PORT_4444_TCP_PORT
+            value: '4444'
+          - name: NODE_MAX_INSTANCES
+            value: ${FIREFOX_NODE_MAX_INSTANCES}
+          - name: NODE_MAX_SESSION
+            value: ${FIREFOX_NODE_MAX_INSTANCES}
+          volumeMounts:                 
+            - name: dshm
+              mountPath: /dev/shm
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+          securityContext:
+            capabilities: {}
+            privileged: false
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: ${SELENIUM_NODE_CHROME_NAME}
+    labels:
+      deploymentConfig: ${SELENIUM_NODE_CHROME_NAME}
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${SELENIUM_NODE_CHROME_NAME}
+        from:
+          kind: ImageStreamTag
+          name: selenium-node-chrome:prod
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      browser: ${SELENIUM_NODE_CHROME_NAME}
+    template:
+      metadata:
+        labels:
+          browser: ${SELENIUM_NODE_CHROME_NAME}
+      spec:
+        volumes:                      
+          - name: dshm
+            emptyDir:
+              medium: Memory
+        containers:
+        - name: ${SELENIUM_NODE_CHROME_NAME}
+          image: selenium-node-chrome
+          ports:
+          - name: hub
+            containerPort: 4444
+            protocol: TCP
+          - name: node
+            containerPort: 5555
+            protocol: TCP
+          env:
+          - name: JAVA_OPTS
+            value: ${JAVA_OPTS}
+          - name: SE_OPTS
+            value: ''
+          - name: HUB_PORT_4444_TCP_ADDR
+            value: ${SELENIUM_HUB_NAME}
+          - name: HUB_PORT_4444_TCP_PORT
+            value: '4444'
+          - name: NODE_MAX_INSTANCES
+            value: ${CHROME_NODE_MAX_INSTANCES}
+          - name: NODE_MAX_SESSION
+            value: ${CHROME_NODE_MAX_INSTANCES}
+          volumeMounts:                 
+            - name: dshm
+              mountPath: /dev/shm
+          resources: {}
+          terminationMessagePath: "/dev/termination-log"
+          imagePullPolicy: Always
+          securityContext:
+            capabilities: {}
+            privileged: false
+        restartPolicy: Always
+        dnsPolicy: ClusterFirst
+parameters:
+  - name: SELENIUM_HUB_NAME
+    displayName: Selenium Hub Name
+    description: The name of the Hub deployment, service and route. Change this in order to host multiple Selenium Grid instances under the same namespace.
+    value: selenium-hub
+  - name: SELENIUM_NODE_CHROME_NAME
+    displayName: Selenium Node Chrome Name
+    description: The name of the Node Chrome deployment. Change this in order to host multiple Selenium Grid instances under the same namespace.
+    value: selenium-node-chrome
+  - name: SELENIUM_NODE_FIREFOX_NAME
+    displayName: Selenium Node Firefox Name
+    description: The name of the Node Firefox deployment. Change this in order to host multiple Selenium Grid instances under the same namespace.
+    value: selenium-node-firefox
+  - name: JAVA_OPTS
+    description: Options to pass to the java command.
+    value: "-Xmx512m -Dselenium.LOGGER.level=WARNING"
+  - name: POOL_MAX
+    description: Max thread count for incoming and outgoing connections.
+    value: "30000"
+  - name: GRID_NEW_SESSION_WAIT_TIMEOUT
+    description: The time after which a new test waiting for a node to become available will time out. When that happens, the test will throw an exception before attempting to start a browser.
+    value: "-1"
+  - name: GRID_JETTY_MAX_THREADS
+    description: Max Threads for the Jetty server.
+    value: "100"
+  - name: GRID_NODE_POLLING
+    description: (in ms) How often the hub checks the status of a node.
+    value: "5000"
+  - name: GRID_CLEAN_UP_CYCLE
+    description: "(in ms) How often the hub will poll running proxies for timed-out (i.e. hung) threads. Must also specify 'GRID_TIMEOUT' option."
+    value: "5000"
+  - name: GRID_TIMEOUT
+    description: (in ms) The timeout for the grid.
+    value: "1800"
+  - name: GRID_BROWSER_TIMEOUT
+    description: (in ms) How long the grid waits before it treats a session as stale, due to the browser getting hung. 0 is for no timeout.
+    value: "0"
+  - name: GRID_MAX_SESSION
+    description: How many sessions max.
+    value: "3"
+  - name: GRID_UNREGISTER_IF_STILL_DOWN_AFTER
+    description: (in ms) Time to wait before unregistering nodes.
+    value: "500"
+  - name: CHROME_NODE_MAX_INSTANCES
+    description: Max number of browsers the Chrome node can run in parallel.
+    value: "3"
+  - name: FIREFOX_NODE_MAX_INSTANCES
+    description: Max number of browsers the Firefox node can run in parallel.
+    value: "3"
+labels:
+  app: Selenium
