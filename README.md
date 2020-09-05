@@ -30,7 +30,7 @@ $ oc create -f openshift/build-images.yaml
 ```
 
 ## Import the template
-Import the [`./selenium-grid.yaml` template](./selenium-grid.yaml) in OpenShift. 
+Import the template [`./selenium-grid.yaml`](./selenium-grid.yaml) in OpenShift. 
 
 Or with the command line:
 ```bash
